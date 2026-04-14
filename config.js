@@ -3,7 +3,7 @@
 
 const API_CONFIG = {
     // VM backend URL (Google Compute Engine e2-micro)
-    VM: 'http://34.46.189.224:8081',
+    VM: 'https://34.46.189.224.sslip.io',
     
     // Cloud Run backend URL (has timeout issues)
     CLOUD_RUN: 'https://lead-scraper-backend-1089535354620.us-central1.run.app',
