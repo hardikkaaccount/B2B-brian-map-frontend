@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const maxResultsInput   = document.getElementById('max-results');
     const resultsHint       = document.getElementById('results-hint');
     const zoneSplitToggle   = document.getElementById('zone-split-toggle');
+    const fastModeToggle    = document.getElementById('fast-mode-toggle');
     const activityLog       = document.getElementById('activity-log');
 
     // BACKEND_URL is loaded from config.js
@@ -75,6 +76,11 @@ document.addEventListener('DOMContentLoaded', () => {
             });
             if (response.ok) {
                 console.log('Cancel request sent successfully');
+                // Aggressively halt UI instead of waiting for delayed backend confirmation
+                stopPolling();
+                sessionStorage.setItem('jobStatus', 'cancelled');
+                sessionStorage.removeItem('currentJobId');
+                setUIState('error', `Scrape cancelled gracefully. Any leads collected so far have been saved.`);
             } else {
                 console.error('Cancel request failed:', response.status);
                 cancelBtn.disabled = false;
@@ -96,6 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const location   = document.getElementById('location').value.trim();
         const maxResults = parseInt(maxResultsInput.value, 10) || 50;
         const zoneSplit  = zoneSplitToggle.checked;
+        const fastMode   = fastModeToggle.checked;
         const sheetTab   = document.getElementById('sheet-tab-input').value.trim();
 
         if (!term || !location) return;
@@ -104,20 +111,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const isLargeRequest = maxResults > 50;
 
         if (isLargeRequest) {
-            await startAsyncJob(term, location, maxResults, zoneSplit, sheetTab);
+            await startAsyncJob(term, location, maxResults, zoneSplit, sheetTab, fastMode);
         } else {
-            await runLegacySync(term, location, maxResults, zoneSplit, sheetTab);
+            await runLegacySync(term, location, maxResults, zoneSplit, sheetTab, fastMode);
         }
     });
 
     // ── Legacy sync flow ───────────────────────────────────────────────────
-    async function runLegacySync(term, location, maxResults, zoneSplit, sheetTab) {
+    async function runLegacySync(term, location, maxResults, zoneSplit, sheetTab, fastMode) {
         setUIState('loading-simple');
         try {
             const response = await fetch(`${BACKEND_URL}/`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ term, location, max_results: maxResults, zone_split: zoneSplit, sheet_tab: sheetTab }),
+                body: JSON.stringify({ term, location, max_results: maxResults, zone_split: zoneSplit, sheet_tab: sheetTab, fast_mode: fastMode }),
             });
             const data = await response.json();
 
@@ -141,13 +148,13 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ── Async job flow ─────────────────────────────────────────────────────
-    async function startAsyncJob(term, location, maxResults, zoneSplit, sheetTab) {
+    async function startAsyncJob(term, location, maxResults, zoneSplit, sheetTab, fastMode) {
         setUIState('progress');
         try {
             const response = await fetch(`${BACKEND_URL}/scrape`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ term, location, max_results: maxResults, zone_split: zoneSplit, sheet_tab: sheetTab }),
+                body: JSON.stringify({ term, location, max_results: maxResults, zone_split: zoneSplit, sheet_tab: sheetTab, fast_mode: fastMode }),
             });
             const data = await response.json();
 
