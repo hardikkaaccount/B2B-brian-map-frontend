@@ -340,4 +340,61 @@ document.addEventListener('DOMContentLoaded', () => {
                 break;
         }
     }
+    // ── Jobs Panel ──────────────────────────────────────────────────────────
+    const jobsPanel      = document.getElementById('jobs-panel');
+    const jobsList       = document.getElementById('jobs-list');
+    const refreshJobsBtn = document.getElementById('refresh-jobs-btn');
+    let jobsPollInterval = null;
+
+    function escapeHtmlJobs(text) {
+        const d = document.createElement('div');
+        d.appendChild(document.createTextNode(String(text)));
+        return d.innerHTML;
+    }
+
+    async function fetchJobs() {
+        try {
+            const res = await fetch(`${BACKEND_URL}/jobs`);
+            if (!res.ok) return;
+            const data = await res.json();
+            renderJobs(data.jobs || []);
+        } catch (e) {
+            console.warn('Jobs fetch error:', e);
+        }
+    }
+
+    function renderJobs(jobs) {
+        if (!jobs.length) {
+            jobsPanel.style.display = 'none';
+            return;
+        }
+        jobsPanel.style.display = '';
+
+        jobsList.innerHTML = jobs.map(j => {
+            const statusLabel = j.status.charAt(0).toUpperCase() + j.status.slice(1);
+            const pct = j.progress_pct || 0;
+            return `<div class="job-card" id="job-${escapeHtmlJobs(j.job_id)}">
+                <span class="job-status-dot ${escapeHtmlJobs(j.status)}"></span>
+                <div class="job-details">
+                    <div class="job-query">${escapeHtmlJobs(j.term)} in ${escapeHtmlJobs(j.location)}</div>
+                    <div class="job-meta">${statusLabel} · ${j.zones_completed}/${j.total_zones} zones · target ${j.max_results}</div>
+                </div>
+                <div class="job-progress-mini">
+                    <div class="job-progress-mini-fill" style="width: ${pct}%"></div>
+                </div>
+                <span class="job-leads-count">${j.leads_found}</span>
+            </div>`;
+        }).join('');
+    }
+
+    refreshJobsBtn.addEventListener('click', () => {
+        refreshJobsBtn.classList.add('spinning');
+        fetchJobs().finally(() => {
+            setTimeout(() => refreshJobsBtn.classList.remove('spinning'), 600);
+        });
+    });
+
+    // Start polling jobs list
+    fetchJobs();
+    jobsPollInterval = setInterval(fetchJobs, 5000);
 });

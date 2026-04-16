@@ -12,7 +12,7 @@ const API_CONFIG = {
     LOCAL: 'http://localhost:8081',
     
     // Current environment - change based on where backend is running
-    CURRENT: 'VM'  // Options: 'VM', 'CLOUD_RUN', or 'LOCAL'
+    CURRENT: 'LOCAL'  // Options: 'VM', 'CLOUD_RUN', or 'LOCAL'
 };
 
 // Get the active backend URL
